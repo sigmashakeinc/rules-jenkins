@@ -29,43 +29,39 @@ rule no-sh-string-interpolation-jenkins {
   enabled true
   priority 95
   severity error
-  ASK write
+  LOG write
   IF path GLOB "**/Jenkinsfile" AND content LINE_REGEX "sh\\s+['\"].*\\$\\{params\\."
   OR path GLOB "**/Jenkinsfile" AND content LINE_REGEX "sh\\s+['\"].*\\$\\{env\\."
   OR path GLOB "**/Jenkinsfile" AND content LINE_REGEX "sh \"\"\".*\\$\\{params\\."
   MESSAGE "Groovy string interpolation of params.* or env.* in sh steps enables command injection — a malicious parameter value can execute arbitrary shell commands. Use single-quoted sh steps and pass variables as environment variables."
-  PROMPT "Are Jenkins parameters interpolated directly into shell commands? Use: withEnv(['PARAM=' + params.VALUE]) { sh 'cmd $PARAM' } instead of sh \"cmd ${params.VALUE}\""
 }
 
 rule no-script-security-bypass-jenkins {
   enabled true
   priority 90
   severity error
-  ASK write
+  LOG write
   IF path GLOB "**/Jenkinsfile" AND content CONTAINS "@NonCPS"
   OR path GLOB "**/*.groovy" AND content CONTAINS "@NonCPS"
   MESSAGE "@NonCPS methods bypass Jenkins' Groovy sandbox security restrictions. Audit @NonCPS usage carefully — it can access the Jenkins controller with full privileges."
-  PROMPT "Is @NonCPS necessary here? Methods marked @NonCPS run outside the sandbox with full Jenkins privileges. Consider restructuring to avoid bypassing sandbox restrictions."
 }
 
 rule no-agent-any-public-jenkins {
   enabled true
   priority 80
   severity warning
-  ASK write
+  LOG write
   IF path GLOB "**/Jenkinsfile" AND content LINE_REGEX "agent\\s+any"
   MESSAGE "agent: any runs the pipeline on any available agent without restriction. For sensitive pipelines, use labeled agents to control which nodes execute privileged jobs."
-  PROMPT "Does this pipeline handle secrets or require a specific environment? Use agent { label 'secure-agent' } to restrict execution to trusted, properly configured nodes."
 }
 
 rule no-archive-sensitive-artifacts-jenkins {
   enabled true
   priority 80
   severity warning
-  ASK write
+  LOG write
   IF path GLOB "**/Jenkinsfile" AND content LINE_REGEX "archiveArtifacts.*\\.env"
   OR path GLOB "**/Jenkinsfile" AND content LINE_REGEX "archiveArtifacts.*credentials"
   OR path GLOB "**/Jenkinsfile" AND content LINE_REGEX "archiveArtifacts.*secrets"
   MESSAGE "Archiving .env or credential files as Jenkins artifacts stores secrets in the Jenkins artifact store, accessible to anyone with artifact read access. Exclude sensitive files from archiveArtifacts."
-  PROMPT "Are any of these archived artifacts sensitive? Remove credential/secret files from archiveArtifacts — store secrets in Jenkins Credentials Store instead."
 }
